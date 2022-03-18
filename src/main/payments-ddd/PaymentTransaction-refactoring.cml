@@ -1,0 +1,235 @@
+/* The DDD Cargo sample application modeled in CML. Note that we split the application into multiple bounded contexts. */
+ContextMap PaymentTransaction {
+    // contains TokenInterceptor
+    contains PaymentGateway
+    contains PaymentCore
+    contains PAAdaptor
+    contains PAExecutorcard 
+    contains PAExecutorwallet
+    // contains PAFundSplit 
+    contains PAFX
+    contains PAFraud, PAThreeDS, PAMerchantEvents
+    contains PAConfigCenter
+    contains AccountUpdater
+    contains FinancialTransaction
+    contains PAClearingHouse
+
+    // contains Accountservice
+    // contains FX
+    // TokenInterceptor [D]<-[U] PaymentGateway
+    PaymentGateway [D]<-[U] PaymentCore
+
+    // PaymentGateway [D]<-[U] PAFundSplit 
+    PaymentCore [D, ACL]<-[U] PAConfigCenter
+
+    // PAConfigCenter [D, ACL]<-[U, OHS] Accountservice 
+    PaymentCore [D, ACL]<-[U] PAExecutorcard
+
+    PaymentCore [D, ACL]<-[U] PAExecutorwallet
+
+    PaymentCore [D, ACL]<-[U] FinancialTransaction
+
+    PAExecutorcard [D, ACL]<-[U] PAAdaptor
+
+    PAExecutorcard [D, ACL]<-[U] AccountUpdater
+
+    PAExecutorcard [D, ACL]<-[U] PAFraud
+
+    PAExecutorcard [D, ACL]<-[U] PAThreeDS
+
+    PAExecutorwallet [D, ACL]<-[U] PAAdaptor
+
+    PaymentCore [D, ACL]<-[U] PAFX
+
+    // PAFX [D, ACL]<-[U] FX
+    PAMerchantEvents [C]<-[S] PaymentCore
+
+    PAClearingHouse [C]<-[S] PaymentCore
+}
+
+BoundedContext TokenInterceptor{
+}
+
+BoundedContext PaymentGateway{
+}
+
+/* The original booking application context */
+BoundedContext PaymentCore {
+    Aggregate PaymentIntent {
+        Entity PaymentIntent {
+            aggregateRoot
+            - PaymentIntentID paymentIntentID
+            - PaymentIntentState paymentIntentState
+            - Customer customer
+            - List<PaymentAttempt> paymentAttempt
+            - PurchaseOrder order
+        }
+        ValueObject PaymentIntentID {
+            int id key
+        }
+        ValueObject PurchaseOrder {
+        }
+        enum  PaymentIntentState {
+            REQUIRES_PAYMENT_METHOD,
+			REQUIRES_CUSTOMER_ACTION,
+			REQUIRES_CAPTURE,
+			SUCCEEDED,
+			CANCELLED
+        }
+        DomainEvent PaymentIntentEvent
+    }
+    Aggregate Customer{
+        Entity Customer{
+            aggregateRoot
+            - CustomerID customerID
+            - PaymentInstrument paymentInstrument
+        }
+        ValueObject CustomerID {
+            int id key
+        }
+    }
+    Aggregate PaymentInstrument{
+        Entity PaymentInstrument{
+            aggregateRoot
+            - PaymentInstrumentID paymentInstrumentID
+            - Source source
+            - Billing billing
+        }
+        ValueObject PaymentInstrumentID {
+            int id key
+        }
+        ValueObject Source{
+        }
+        ValueObject Billing{
+        }
+        DomainEvent PaymentInstrumentEvent
+    }
+    Aggregate PaymentAttempt{
+        Entity PaymentAttempt{
+            aggregateRoot
+            - PaymentAttemptID paymentAttemptID
+            - PaymentInstrument paymentInstrumentSnapshot
+            - List<PaymentDirective> paymentDirectives
+            - MerchantConfig merchantConfig
+            - Processor processor
+            - PaymentAttemptState paymentAttemptState
+        }
+        enum  PaymentAttemptState {
+            RECEIVED,
+			FAILED_TO_PROCESS,
+			FRAUD_FAILED,
+			FRAUD_DECLINED,
+			PENDING_AUTHENTICATION,
+			AUTHENTICATION_FAILED,
+			AUTHENTICATION_REDIRECTED,
+			PENDING_AUTHORIZATION,
+			AUTHORIZED,
+			AUTHORIZATION_FAILED,
+			CANCELLED,
+			EXPIRED,
+			CAPTURE_REQUESTED,
+			CAPTURE_FAILED,
+			SETTLED,
+			PAID_NOT_SETTLED,
+			PAID_SETTLED
+        }
+        ValueObject PaymentAttemptID {
+            int id key
+        }
+        ValueObject MerchantConfig{
+        }
+        ValueObject Processor{
+        }
+        DomainEvent PaymentAttemptEvent
+    }
+    Aggregate Refund{
+        Entity Refund{
+            aggregateRoot
+            string paymentAttemptID
+            - RefundID refundID
+            - PaymentDirective paymentDirective
+            - PaymentInstrument paymentInstrumentSnapshot
+            - RefundState refundState
+        }
+        ValueObject RefundID {
+            int id key
+        }
+        enum  RefundState {
+            RECEIVED,
+			SENT_FOR_REFUND,
+			FAILED_RETRYABLE,
+			FAILED,
+			SUCCEEDED // Core only
+        }
+        DomainEvent RefundProcessingFailedEvent
+        DomainEvent RefundProcessingSuccessEvent
+        DomainEvent RefundReceivedEvent
+        DomainEvent RefundReceivingFailedEvent
+    }
+    Aggregate PaymentDirective{
+        Entity PaymentDirective{
+            aggregateRoot
+            - PaymentDirectiveID paymentDirectiveID
+            - PaymentDirectiveState paymentDirectiveState
+        }
+        ValueObject PaymentDirectiveID {
+            int id key
+        }
+        enum  PaymentDirectiveState {
+            DIRECTIVE_PENDING,
+			DIRECTIVE_SUCCEEDED,
+			DIRECTIVE_FAILED,
+			DIRECTIVE_TECH_ERROR,
+			DIRECTIVE_CANCELED
+        }
+    }
+    Aggregate Consent{
+        Entity Consent{
+            aggregateRoot
+            - PaymentIntentID paymentIntentId
+        }
+    }
+}
+
+BoundedContext PAAdaptor{
+}
+
+BoundedContext PAFraud{
+}
+
+BoundedContext PAThreeDS{
+}
+
+BoundedContext PAFX{
+}
+
+BoundedContext PAMerchantEvents{
+}
+
+BoundedContext PAConfigCenter{
+}
+
+BoundedContext Accountservice{
+}
+
+BoundedContext FX{
+}
+
+BoundedContext PAFundSplit{
+}
+
+BoundedContext PAExecutorwallet{
+}
+
+BoundedContext PAExecutorcard{
+}
+
+BoundedContext FinancialTransaction{
+}
+
+BoundedContext PAClearingHouse{
+}
+
+BoundedContext AccountUpdater{
+}
+

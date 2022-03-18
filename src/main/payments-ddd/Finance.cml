@@ -1,0 +1,231 @@
+/* The DDD Cargo sample application modeled in CML. Note that we split the application into multiple bounded contexts. */
+ContextMap Finance {
+	contains PACore
+	contains PAClearingHouse
+	contains FinancialTransaction
+	contains PAReconciliation
+	contains PAAdaptor
+	contains PAFundSplit
+	contains PAFX
+	contains PAFinance
+	contains BillingCenter
+	contains GTPN
+	contains Wallet
+	contains Ledger
+	contains FX
+	contains PAConfigcenter
+	contains PAFusion
+
+	PACore [S] -> [C] PAClearingHouse
+
+	PAFundSplit [S] -> [C] PAClearingHouse
+
+	PAFX [U] -> [D] PAClearingHouse
+
+	PAConfigcenter [U] -> [D] PAClearingHouse
+
+	PAAdaptor [S] -> [C, ACL] PAClearingHouse
+
+	PAClearingHouse [S] -> [C] PAReconciliation
+
+	PAAdaptor [S] -> [C, ACL] PAReconciliation
+
+	GTPN [U, OHS] -> [D, ACL] PAReconciliation
+
+	GTPN [U, OHS] -> [D, ACL] PAAdaptor
+
+	PAClearingHouse [S] -> [C] Ledger
+
+	PAClearingHouse [S] -> [C] PAFusion
+
+	PAClearingHouse [S] -> [C] PAFinance
+
+	PAFinance [S] -> [C] BillingCenter
+
+	PAClearingHouse [S] -> [C] FinancialTransaction
+
+	FinancialTransaction [D] <- [U] Wallet
+
+	FX [U] -> [D] PAFX
+}
+
+BoundedContext PACore{
+}
+
+BoundedContext PAConfigcenter{
+}
+
+BoundedContext PAFusion{
+}
+
+BoundedContext PAClearingHouse{
+	Aggregate Payment {
+		ValueObject Payment {
+			aggregateRoot
+            - PaymentID paymentID
+		}
+		ValueObject PaymentID {
+			int id key
+		}
+	}
+	Aggregate FxBookingItem {
+		Entity FxBookingItem {
+			aggregateRoot
+			- String id
+			- String bookTransactionId
+			- Double fxRate
+			- Double buyAmount
+			- Double buyCcy
+			- String sellCcy
+			- Double sellAmount
+			- List<ClearingItem> clearingItems
+		}
+	}
+	Aggregate ClearingItem {
+		Entity ClearingItem{
+			aggregateRoot
+			- String id
+			- Payment payment
+			- MerchantTransaction merchantTransaction
+			- AcquirerTransaction merchantTransaction
+			- ClearingStatus status
+		}
+		ValueObject MerchantTransaction {
+			- String transactionCcy
+			- String settlementCcy
+		}
+		ValueObject AcquirerTransaction {
+			- String transactionCcy
+			- String settlementCcy
+		}
+		enum ClearingStatus{
+			RECEIVED, SEND_FOR_SETTLE, ACQUIRER_SETTLEMENT_CLEARED, ACQUIRER_SETTLED
+		}
+	}
+	Aggregate FeeItem {
+		Entity FeeItem{
+			aggregateRoot
+			- String id
+			- Payment payment
+			- List<Fee> fees
+		}
+		ValueObject Fee {
+			- Double amount
+			- String ccy
+		}
+	}
+}
+
+BoundedContext FinancialTransaction{
+	Aggregate FinancialTransaction {
+		Entity FinancialTransaction{
+			aggregateRoot
+			- String id
+			- String sourceEntity
+			- String sourceId
+			- String transactionType
+			- String transactionCcy
+			- Double transactionAmount
+			- String settlementCcy
+			- Double settlementAmount
+			- Status status
+		}
+		enum Status {
+			PENDING, SETTLED
+		}
+	}
+	Aggregate BatchSettlement {
+		Entity BatchSettlement{
+			aggregateRoot
+			- String id
+			- String batchId
+			- String settlementCcy
+			- Double settlementAmount
+			- List<FinancialTransaction> financialTransactions
+			- SettlementStatus status
+		}
+		enum SettlementStatus {
+			PENDING, SETTLED
+		}
+	}
+}
+
+BoundedContext PAReconciliation{
+	Aggregate MerchantTransaction {
+		Entity LeftTransaction{
+			aggregateRoot
+			- String id
+			- String transactionType
+			- String transactionCcy
+			- Double transactionAmount
+			- RightTransaction acquirerTransaction
+		}
+	}
+	Aggregate AcquirerTransaction {
+		Entity RightTransaction{
+			aggregateRoot
+			- String id
+			- String transactionType
+			- String transactionCcy
+			- Double transactionAmount
+		}
+	}
+	Aggregate AcquirerSettlement {
+		Entity AcquirerSettlement{
+			aggregateRoot
+			- String id
+			- String batchId
+			- String settlementCcy
+			- Double settlementAmount
+			- String settlementCcy
+			- Double settlementAmount
+			- List<RightTransaction> acquirerTransactions
+			- AcquirerSettlementStatus status
+		}
+		enum AcquirerSettlementStatus {
+			PENDING, VERIFIED
+		}
+	}
+	Aggregate BankFundStatement {
+		Entity BankFundStatement{
+			aggregateRoot
+			- String id
+			- String batchId
+			- String ccy
+			- Double amount
+			- String date
+			- List<AcquirerSettlement> acquirerSettlements
+		}
+	}
+}
+
+BoundedContext PAFileGateway{
+}
+
+BoundedContext PAFX{
+}
+
+BoundedContext PAAdaptor{
+}
+
+BoundedContext PAFinance{
+}
+
+BoundedContext GTPN{
+}
+
+BoundedContext Wallet{
+}
+
+BoundedContext Ledger{
+}
+
+BoundedContext FX{
+}
+
+BoundedContext BillingCenter{
+}
+
+BoundedContext PAFundSplit{
+}
+
