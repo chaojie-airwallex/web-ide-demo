@@ -1,0 +1,23 @@
+@startuml
+
+
+
+PaymentConsent "1" o-- "*" PaymentIntent: > create
+PaymentIntent "1" *-- "*" PaymentAttempt: > pay
+PaymentInstrument "1" -- "*" PaymentAttempt: < contains
+PaymentInstrument "1" -- "*" PaymentConsent: < contains
+Customer "1" -- "*" PaymentIntent : > owns
+PaymentAttempt "1" *-- "*" PaymentDirective: > execute
+PaymentIntent "1" *-- "*" Refund: > refund
+Refund "1" -- "1" PaymentDirective: > execute
+
+PaymentIntent "1" *-- "*" FundsSplit: > split
+
+ClearingItem "1" -- "1" PaymentDirective:> clear
+ClearingItem "1" -- "1" FundsSplit:> clear
+PaymentAttempt "1" *-- "*" FeeItem
+ClearingItem "1" -- "1.*" FinancialTransction: > settle
+FeeItem "1.*" -- "1" FinancialTransction: > settle
+BatchSettlement "1" o-- "1..*" FinancialTransction: < batch
+
+@enduml
